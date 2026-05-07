@@ -7,14 +7,44 @@
 ##There would be files with Library names: 1_S1_Loo1 or 1_S1_L002 or GH-1_S1_L002 OR GH_1_s1_L002
 ##Copy them all in a single folder and run the fastqc module
 
-# Load the module
-module load fastqc
+#### Step 1. Run the fastqc. I have land 1-3 and 4-6.
+#### Step 1. a. Run the Fastqx for the lane 4-6
+```bash
 
-# Run fastqc on all files
-fastqc ./*.gz (This will run fastqc on all the .gz files. There are other different kinds of files like .html or .zip but we would only want to run on a .gz file. If I use another file format, then errors like “failed to process due to the ID line not starting with @ pops up.) Note: It took me 4-5 hours since I ran on a single computer or CPU processor. Next, time, I need to run on at least 7-8 computers)
+#!/bin/bash
+#SBATCH --job-name=4_6fastqc
+#SBATCH --account=bio260092
+#SBATCH --partition=shared      # Use 'shared' for smaller resource requests
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=2      # 2 CPUs is plenty for one FastQC process
+#SBATCH --mem=10G                # 8GB is more than enough for FastQC
+#SBATCH --time=40:00:00         # 2 hours is plenty (100h was the main error)
+#SBATCH --array=0-5
+#SBATCH --output=fastqc_%A_%a.out
 
-#Got the directory containing your fastqc. Html.
-Cd to the directory where your files are located. For me, they were in Land1_Seq_Jan2023
+module load fastqc/0.11.9
+
+OUTDIR="/anvil/projects/x-bio260092/Brook_Trout_Project/Lane_4_6/NV-C1703/fastqc"
+mkdir -p $OUTDIR
+
+# Important: Make sure you are in the directory where the .fq.gz files are
+# or provide the full path to the files here:
+FILES=(/anvil/projects/x-bio260092/Brook_Trout_Project/Lane_4_6/NV-C1703/*.fq.gz)
+
+TARGET_FILE=${FILES[$SLURM_ARRAY_TASK_ID]}
+
+echo "Processing file: $TARGET_FILE"
+
+# Run FastQC (using 2 threads to match cpus-per-task)
+fastqc -t 2 -o $OUTDIR $TARGET_FILE
+
+```
+
+
+
+
+
 
 #Check the fastqc report
 find . -name "*.html" ( searches or finds all the files with the extension .html in the current directory).

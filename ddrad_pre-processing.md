@@ -69,117 +69,130 @@ fastqc -t 2 -o $OUTDIR $TARGET_FILE
 ```bash
 #!/bin/bash
 #SBATCH -p batch
-#SBATCH --job-name=1_3_Demultiplexing
+#SBATCH --job-name=1_3_Demux
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=13
+#SBATCH --cpus-per-task=14
 #SBATCH --time=70:00:00
-#SBATCH --array=0-2
+#SBATCH --array=0-2%1
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
 #SBATCH -o logs/demux_%A_%a.out
 #SBATCH -e logs/demux_%A_%a.err
 
-# 1. Load Environment
+set -euo pipefail
+
 module load stacks-2.66 2>/dev/null
 
-# 2. Define Paths
+# ---------------- PATHS ----------------
 DATA_DIR="/shared/jezkovt_bistbs_shared/Brook_trout_Project/Lane_1_3/NV-C1702"
-BASE_OUT="/shared/jezkovt_bistbs_shared/Brook_trout_Project/Lane_1_3/Processed_Radtags_1_3"
+OUT_BASE="/shared/jezkovt_bistbs_shared/Brook_trout_Project/Lane_1_3/Processed_Radtags_1_3"
 
-# 3. List of Plates and Barcode Files
-PLATES=("NV_C1702A_CKDL260007507-1A_23K3H2LT3_L5" "NV_C1702B_CKDL260007507-1A_23K3H2LT3_L5" "NV_C1702C_CKDL260007507-1A_23K3H2LT3_L5")
-BARCODES=("C1702A_barcodes.tsv" "C1702B_barcodes.tsv" "C1702C_barcodes.tsv")
-SUFFIXES=("1" "2" "3")
+mkdir -p "$OUT_BASE" logs
 
-# Identify which plate this specific array task is handling
-SAMPLE=${PLATES[$SLURM_ARRAY_TASK_ID]}
-BC_FILE=${BARCODES[$SLURM_ARRAY_TASK_ID]}
-ID=${SUFFIXES[$SLURM_ARRAY_TASK_ID]}
+# ---------------- SAMPLE MAP ----------------
+PLATES=("A" "B" "C")
 
-# 4. Create a unique folder for each plate (Equivalent to Parsed_Dasy_1, _2, etc.)
-FINAL_OUT="${BASE_OUT}/Parsed_Plate_${ID}"
-mkdir -p $FINAL_OUT
-mkdir -p logs
+PLATE=${PLATES[$SLURM_ARRAY_TASK_ID]}
 
-echo "Starting Plate $ID ($SAMPLE) at $(date)"
+R1="${DATA_DIR}/NV_C1702${PLATE}_CKDL260007507-1A_23K3H2LT3_L5_1.fq.gz"
+R2="${DATA_DIR}/NV_C1702${PLATE}_CKDL260007507-1A_23K3H2LT3_L5_2.fq.gz"
+BC="${DATA_DIR}/C1702${PLATE}_barcodes.tsv"
 
-# 5. Run process_radtags
-# Note: I'm using --inline_null because you previously said your barcodes are inline.
-# I am NOT using --disable_rad_check because checking the SbfI site (TGCAGG) ensures data quality.
-process_radtags -1 ${DATA_DIR}/${SAMPLE}_1.fq.gz \
-                -2 ${DATA_DIR}/${SAMPLE}_2.fq.gz \
-                -b ${DATA_DIR}/${BC_FILE} \
-                -o $FINAL_OUT \
-                -e sbfI \
-                -r -c -q \
-                --inline_null
+OUTDIR="${OUT_BASE}/Parsed_Plate_${PLATE}"
 
-echo "Finished Plate $ID at $(date)"
+mkdir -p "$OUTDIR"
 
+echo "===================================="
+echo "PLATE: $PLATE"
+echo "START: $(date)"
+echo "R1: $R1"
+echo "R2: $R2"
+echo "OUT: $OUTDIR"
+echo "===================================="
+
+# ---------------- SAFETY CHECKS ----------------
+echo "Checking FASTQ integrity..."
+
+gzip -t "$R1" || { echo "❌ CORRUPT R1: $R1"; exit 1; }
+gzip -t "$R2" || { echo "❌ CORRUPT R2: $R2"; exit 1; }
+
+echo "FASTQ files OK"
+
+# ---------------- RUN RADTAGS ----------------
+process_radtags \
+  -1 "$R1" \
+  -2 "$R2" \
+  -b "$BC" \
+  -o "$OUTDIR" \
+  -e sbfI \
+  -r -c -q \
+  --inline_null \
+  2>&1 | tee "logs/NV_C1702_${PLATE}.log"
+
+echo "DONE: Plate $PLATE at $(date)"
 ```
 #### Steps 3 b. Demultiplex reads using the process_radtag command in STACKS for land 4_6
 ```bash
 #!/bin/bash
 #SBATCH -p batch
-#SBATCH --job-name=4_6_Demultiplex
+#SBATCH --job-name=4_6_Demux
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=14
+#SBATCH --cpus-per-task=13
 #SBATCH --time=70:00:00
-#SBATCH --array=0-2
+#SBATCH --array=0-2%1
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=bistbs@miamioh.edu
-#SBATCH -o logs/demux_4_6_%A_%a.out
-#SBATCH -e logs/demux_4_6_%A_%a.err
+#SBATCH -o logs/demux_%A_%a.out
+#SBATCH -e logs/demux_%A_%a.err
 
-# 1. Load Stacks
+set -euo pipefail
+
 module load stacks-2.66 2>/dev/null
 
-# 2. Path Setup for Lane 4_6
 DATA_DIR="/shared/jezkovt_bistbs_shared/Brook_trout_Project/Lane_4_6/NV-C1703"
-BASE_OUT="/shared/jezkovt_bistbs_shared/Brook_trout_Project/Lane_4_6/Processed_Radtags_4_6"
+OUT_BASE="/shared/jezkovt_bistbs_shared/Brook_trout_Project/Lane_4_6/Processed_Radtags_4_6"
 
-# 3. Parallel arrays for Lane 4_6 Files
-PLATES=("NV_C1703A_CKDL260007506-1A_23K3H2LT3_L6" "NV_C1703B_CKDL260007506-1A_23K3H2LT3_L6" "NV_C1703C_CKDL260007506-1A_23K3H2LT3_L6")
-BARCODES=("C1703A_barcodes.tsv" "C1703B_barcodes.tsv" "C1703C_barcodes.tsv")
-SUFFIXES=("A" "B" "C")
+PLATES=("A" "B" "C")
 
-# Map the array task to the specific plate
-SAMPLE=${PLATES[$SLURM_ARRAY_TASK_ID]}
-BC_FILE=${BARCODES[$SLURM_ARRAY_TASK_ID]}
-PLATE_ID=${SUFFIXES[$SLURM_ARRAY_TASK_ID]}
+PLATE=${PLATES[$SLURM_ARRAY_TASK_ID]}
 
-# 4. Create Directory Structure
-# This creates /shared/.../Processed_Radtags_4_6/Parsed_Plate_A (or B, or C)
-FINAL_OUT="${BASE_OUT}/Parsed_Plate_${PLATE_ID}"
-mkdir -p $FINAL_OUT
+R1="${DATA_DIR}/NV_C1703${PLATE}_CKDL260007506-1A_23K3H2LT3_L6_1.fq.gz"
+R2="${DATA_DIR}/NV_C1703${PLATE}_CKDL260007506-1A_23K3H2LT3_L6_2.fq.gz"
+BC="${DATA_DIR}/C1703${PLATE}_barcodes.tsv"
+
+OUTDIR="${OUT_BASE}/Parsed_Plate_${PLATE}"
+
+mkdir -p "$OUTDIR"
 mkdir -p logs
 
-echo "------------------------------------------------------"
-echo "JOB START: $(date)"
-echo "Processing Plate: $PLATE_ID"
-echo "Input File: ${SAMPLE}"
-echo "Barcode File: ${BC_FILE}"
-echo "Output Folder: $FINAL_OUT"
-echo "------------------------------------------------------"
+echo "===================================="
+echo "Plate: $PLATE"
+echo "Start: $(date)"
+echo "===================================="
 
-# 5. Run process_radtags
-# -b: path to the plate-specific barcode file
-# -e sbfI: restriction enzyme (TGCAGG)
-# -r -c -q: rescue, clean, and quality check
-# --inline_null: your barcode type
-process_radtags -1 ${DATA_DIR}/${SAMPLE}_1.fq.gz \
-                -2 ${DATA_DIR}/${SAMPLE}_2.fq.gz \
-                -b ${DATA_DIR}/${BC_FILE} \
-                -o $FINAL_OUT \
-                -e sbfI \
-                -r -c -q \
-                --inline_null
+# ---- SAFETY CHECK (VERY IMPORTANT) ----
+echo "Checking FASTQ integrity..."
 
-echo "JOB END: $(date) for Plate $PLATE_ID"
+gunzip -t "$R1" || { echo "❌ CORRUPT: $R1"; exit 1; }
+gunzip -t "$R2" || { echo "❌ CORRUPT: $R2"; exit 1; }
 
-````
+echo "FASTQ OK"
+
+# ---- RUN PROCESS RADTAGS ----
+process_radtags \
+  -1 "$R1" \
+  -2 "$R2" \
+  -b "$BC" \
+  -o "$OUTDIR" \
+  -e sbfI \
+  -r -c -q \
+  --inline_null \
+  2>&1 | tee "logs/NV_C1703_${PLATE}.log"
+
+echo "Finished Plate ${PLATE} at $(date)"
+```
 
 #### Step 4. Check the size of each demultiplexed samples.
 - Find all of the files greater than a specific size and move only those files that are greater into another new folder.

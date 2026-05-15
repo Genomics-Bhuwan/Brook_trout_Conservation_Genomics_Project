@@ -300,7 +300,7 @@ awk '$5 > 0.60 {print $1}' \
 /anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout.imiss \
 > /anvil/scratch/x-bbist/Trout_Variant_Filtration/lowDP.indv
 
-# STEP 3: Apply all final filters simultaneously
+# STEP 3: Apply all final filters simultaneously.
 vcftools \
   --vcf /anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout.vcf \
   --remove /anvil/scratch/x-bbist/Trout_Variant_Filtration/lowDP.indv \

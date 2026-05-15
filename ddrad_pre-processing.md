@@ -260,106 +260,53 @@ TGCAGG                 ## [8] [restriction_overhang]: Restriction overhang (cut1
 #### Step 6 b. Create the paramter file for running the ipyrad for aligning with the ref. genome assembly.
 - Run the batch script for ipyrad
 ```bash
-#!/bin/bash
-#SBATCH --job-name=ipyrad_brooktrout
-#SBATCH --partition=batch
+#!/bin/bash -l
+#SBATCH --account=bio260092
+#SBATCH --job-name=ipyrad_BT
+#SBATCH --partition=shared
 #SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=24
-#SBATCH --mem=256G
-#SBATCH --time=100:00:00
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=40
+#SBATCH --time=48:00:00
+#SBATCH --mem=128G
 #SBATCH --output=ipyrad_%j.out
 #SBATCH --error=ipyrad_%j.err
-#SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=bistbs@miamioh.edu
 
-# Move to working directory
-cd /home/bistbs/Brook_trout_ipyrad/ipyrad/
+# Prevent Python from buffering output so you see it in the .out file live
+export PYTHONUNBUFFERED=1
 
-# Activate environment
-conda activate my-ipyrad
+cd /anvil/scratch/x-bbist/ipyrad_34567
 
-# Run all ipyrad steps
-ipyrad -p /home/bistbs/Brook_trout_ipyrad/ipyrad/params-brook_trout.txt -s 1234567
+# Load anaconda and activate your environment
+module load anaconda
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate ipyrad_new
 
+# Run ipyrad using the exact Python path you confirmed
+# We use 'python -m ipyrad' to ensure the module is called correctly
+/home/x-bbist/.conda/envs/2024.02-py311/ipyrad_new/bin/python -m ipyrad -p params-Brook_trout.txt -s 7 -c 4 -f
 ```
-
-
-```bash
-#!/bin/bash
-#SBATCH --job-name=ipyrad_brooktrout
-#SBATCH --partition=batch
-#SBATCH --nodes=1
-#SBATCH --ntasks=1
-#SBATCH --cpus-per-task=24
-#SBATCH --mem=256G
-#SBATCH --time=100:00:00
-#SBATCH --output=ipyrad_%j.out
-#SBATCH --error=ipyrad_%j.err
-#SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=bistbs@miamioh.edu
-
-# Move to working directory
-cd /home/bistbs/Brook_trout_ipyrad/ipyrad/
-
-# Activate environment
-conda activate my-ipyrad
-
-# Run all ipyrad steps
-ipyrad -p /home/bistbs/Brook_trout_ipyrad/ipyrad/params-brook_trout.txt -s 4567
-
-
-```
-
 #### Step . Variant filtration using vcf-tools
 ```bash
-# Activate environment if needed
-conda activate my-ipyrad
-
-# Step 1: Keep sites present in at least 50% of individuals
+# STEP 1: Mask low-depth genotypes and calculate missingness
 vcftools \
-  --vcf brook_trout.vcf \
-  --max-missing 0.50 \
-  --recode \
-  --recode-INFO-all \
-  --out brook_trout.g50
-
-# Step 2: Minimum depth per genotype = 5
-vcftools \
-  --vcf brook_trout.g50.recode.vcf \
+  --vcf /anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout.vcf \
   --minDP 5 \
-  --recode \
-  --recode-INFO-all \
-  --out brook_trout.g50.dp5
-
-# Step 3: Calculate individual missingness
-vcftools \
-  --vcf brook_trout.g50.dp5.recode.vcf \
   --missing-indv \
-  --out brook_trout
+  --out /anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout
 
-# Step 4: Remove individuals with >60% missing data
-awk '$5 > 0.60 {print $1}' brook_trout.imiss > lowDP.indv
+# STEP 2: Create list of individuals with >60% missing data
+awk '$5 > 0.60 {print $1}' \
+/anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout.imiss \
+> /anvil/scratch/x-bbist/Trout_Variant_Filtration/lowDP.indv
 
+# STEP 3: Apply all final filters simultaneously
 vcftools \
-  --vcf brook_trout.g50.dp5.recode.vcf \
-  --remove lowDP.indv \
-  --recode \
-  --recode-INFO-all \
-  --out brook_trout.g50.dp5.rmind
-
-# Step 5: Final filtering
-# - max missing = 60%
-# - MAF >= 0.05
-# - mean depth >= 5
-# - keep only biallelic SNPs
-# - thin SNPs every 10 kb
-# - remove indels
-
-vcftools \
-  --vcf brook_trout.g50.dp5.rmind.recode.vcf \
+  --vcf /anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout.vcf \
+  --remove /anvil/scratch/x-bbist/Trout_Variant_Filtration/lowDP.indv \
   --max-missing 0.60 \
   --maf 0.05 \
+  --minDP 5 \
   --min-meanDP 5 \
   --min-alleles 2 \
   --max-alleles 2 \
@@ -367,7 +314,6 @@ vcftools \
   --thin 10000 \
   --recode \
   --recode-INFO-all \
-  --out brook_trout.filtered.biallelic
-
+  --out /anvil/scratch/x-bbist/Trout_Variant_Filtration/Brook_trout.filtered.biallelic
 
 ```

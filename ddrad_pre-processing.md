@@ -234,7 +234,7 @@ reference                         ## [5] [assembly_method]: Assembly method (den
 /home/bistbs/Brook_trout_ipyrad/ipyrad/GCF_029448725.1_ASM2944872v1_genomic.fna  ## [6] [reference_sequence]: Location of reference sequence file
 rad                      ## [7] [datatype]: Datatype (see docs): rad, gbs, ddrad, etc.
 TGCAGG                 ## [8] [restriction_overhang]: Restriction overhang (cut1,) or (cut1, cut2)
-5                              ## [9] [max_low_qual_bases]: Max low quality base calls (Q<20) in a read
+5                             ## [9] [max_low_qual_bases]: Max low quality base calls (Q<20) in a read
 33                             ## [10] [phred_Qscore_offset]: phred Q score offset (33 is default and very standard)
 6                              ## [11] [mindepth_statistical]: Min depth for statistical base calling
 6                              ## [12] [mindepth_majrule]: Min depth for majority-rule base calling

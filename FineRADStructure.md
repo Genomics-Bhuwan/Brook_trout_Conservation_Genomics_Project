@@ -1,7 +1,7 @@
 #### Finding out the events:
 #### Step 1: Convert VCF to Haplotype format
 ```bash
-./RADpainter hapsFromVCF -i ../../Brook_trout.filtered.biallelic.recode.vcf -o trout_haps.txt
+./RADpainter hapsFromVCF ../../Brook_trout.filtered.biallelic.recode.vcf > trout_haps.txt
 ```
 #### Step 2: Calculate the Co-ancestry Matrix (Painting)
 - It calculates how much DNA is shared between every individual fish.

@@ -31,11 +31,16 @@ vcftools --vcf Brook_trout.filtered.biallelic.recode.vcf \
   --recode --recode-INFO-all \
   --out Brook_trout_LD_strict
 
-../BA3 -c \
+```
+
+- Step 2. Running BA3 program 
+
+```bash
+/home/bistbs/Brook_trout_ipyrad/BA3/BA3 -c \
   -V Brook_trout_LD_strict.recode.vcf \
-  -M ../popmap.txt \
-  -o BA3_LD_run1_out.txt \
+  -M /home/bistbs/Brook_trout_ipyrad/BA3/popmap.txt \
+  -o BA3_LD_fixed_out.txt \
   -i 10000000 -b 1000000 -n 1000 -t -g \
-  -m 0.15 -a 0.10 -f 0.10 -u -s 42 \
-  -F allele_freqs_LD_run1.tsv
+  -m 0.15 -a 0.10 -f 0.10 -N -s 42 \
+  -F allele_freqs_LD_fixed.tsv
 ```

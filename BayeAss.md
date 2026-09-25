@@ -30,4 +30,12 @@ vcftools --vcf Brook_trout.filtered.biallelic.recode.vcf \
   --snps bt_ld_strict.prune.in \
   --recode --recode-INFO-all \
   --out Brook_trout_LD_strict
+
+../BA3 -c \
+  -V Brook_trout_LD_strict.recode.vcf \
+  -M ../popmap.txt \
+  -o BA3_LD_run1_out.txt \
+  -i 10000000 -b 1000000 -n 1000 -t -g \
+  -m 0.15 -a 0.10 -f 0.10 -u -s 42 \
+  -F allele_freqs_LD_run1.tsv
 ```

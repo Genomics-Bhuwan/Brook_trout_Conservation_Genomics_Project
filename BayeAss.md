@@ -36,11 +36,57 @@ vcftools --vcf Brook_trout.filtered.biallelic.recode.vcf \
 - Step 2. Running BA3 program 
 
 ```bash
-/home/bistbs/Brook_trout_ipyrad/BA3/BA3 -c \
-  -V Brook_trout_LD_strict.recode.vcf \
-  -M /home/bistbs/Brook_trout_ipyrad/BA3/popmap.txt \
-  -o BA3_LD_fixed_out.txt \
-  -i 10000000 -b 1000000 -n 1000 -t -g \
-  -m 0.15 -a 0.10 -f 0.10 -N -s 42 \
-  -F allele_freqs_LD_fixed.tsv
+# Absolute paths
+BA3_EXEC="/home/bistbs/Brook_trout_ipyrad/BA3/BA3"
+VCF_FILE="/home/bistbs/Brook_trout_ipyrad/BA3/Linkage_Disequilibrium_Method/Brook_trout_LD_strict.recode.vcf"
+POPMAP_FILE="/home/bistbs/Brook_trout_ipyrad/BA3/Linkage_Disequilibrium_Method/popmap.txt"
+SEEDS=(12345 23456 34567 45678 56789)
+
+TOTAL_RUNS=${#SEEDS[@]}
+CURRENT_RUN=1
+
+for SEED in "${SEEDS[@]}"; do
+    DIR="/home/bistbs/Brook_trout_ipyrad/BA3/Linkage_Disequilibrium_Method/run_seed_${SEED}"
+    
+    echo "============================================================"
+    echo " Starting BayesAss Run [${CURRENT_RUN}/${TOTAL_RUNS}] | Seed: ${SEED}"
+    echo " Directory: ${DIR}"
+    echo "============================================================"
+    
+    # Create and enter seed directory
+    mkdir -p "${DIR}"
+    cd "${DIR}" || exit 1
+
+    # Execute BA3 with proper option ordering
+    "${BA3_EXEC}" \
+      -i 50000000 \
+      -b 5000000 \
+      -n 100 \
+      -m 1.00 -a 1.00 -f 1.00 \
+      -s "${SEED}" \
+      -t -u -v \
+      -V "${VCF_FILE}" \
+      -M "${POPMAP_FILE}" \
+      -o "${DIR}/BT_BA3_seed${SEED}_50M.out" \
+      "${VCF_FILE}"
+
+    # Move generated trace and indiv files into seed directory
+    if [ -f "pop.str.trace.txt" ]; then
+        mv pop.str.trace.txt "${DIR}/BT_BA3_seed${SEED}.trace.txt"
+    fi
+    if [ -f "pop.str.indiv.txt" ]; then
+        mv pop.str.indiv.txt "${DIR}/BT_BA3_seed${SEED}.indiv.txt"
+    fi
+
+    # Return to main working directory
+    cd /home/bistbs/Brook_trout_ipyrad/BA3/Linkage_Disequilibrium_Method
+
+    echo ""
+    echo "Finished run for Seed: ${SEED}"
+    echo ""
+    
+    CURRENT_RUN=$((CURRENT_RUN + 1))
+done
+
+echo "All 5 BayesAss runs completed!"
 ```
